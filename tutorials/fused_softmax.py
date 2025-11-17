@@ -2,13 +2,19 @@
 Correctness, autotuning, and benchmarking for fused softmax by myself.
 Reference: https://triton-lang.org/main/getting-started/tutorials/02-fused-softmax.html#sphx-glr-getting-started-tutorials-02-fused-softmax-py
 """
+import os
+
+os.environ["TRITON_INTERPRET"] = "0"
+os.environ["TRITON_DEBUG"] = "0"
+os.environ["TRITON_PRINT_AUTOTUNING"] = "1"
 
 import torch
 import triton
 import triton.language as tl
 
+DEVICE = triton.runtime.driver.active.get_active_torch_device()
 
-def torch_reference(x):
+def python_reference(x):
     pass
 
 @triton.autotune(
@@ -28,7 +34,7 @@ def triton_launcher(x):
 
 @triton.testing.perf_report(
     triton.testing.Benchmark(
-        x_args=['numel'],
+        x_names=['numel'],
         line_arg='provider',
         line_vals=['torch', 'triton'],
     )
@@ -40,13 +46,17 @@ def main():
     torch.random.seed(0)
     print("Correctness and autotuning:")
 
-    for size in [100, 1000]:
-        x = torch.randn(size)
-        output_torch = torch_reference(x)
-        output_triton = triton_launcher(x)
-        assert (output_torch-output_triton)==0, f'Mismatched outputs (torch, triton): {output_torch}, {output_triton}'
-
-    benchmark.run(show_plots=True, save_path="./")
+    y_sizes = [4096, 1823, 100]
+    x_sizes = [128*i for i in range(2, 100)]
+    for m in y_sizes:
+        for n in x_sizes:
+            x = torch.randn(m, n, device=DEVICE)
+            output_naive = python_reference(x)
+            output_torch = torch.softmax(x, axis=1)
+            output_triton = triton_launcher(x)
+            assert torch.allclose(output_naive, output_torch) and torch.allclose(output_torch, output_triton)
+    print("Passed correctness. Running bechmark:")
+    benchmark.run(print_data=True, save_path="./")
 
 
 if __name__ == "__main__":
