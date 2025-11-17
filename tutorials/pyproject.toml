@@ -1,0 +1,14 @@
+[project]
+name = "tutorials"
+version = "0.1.0"
+description = "My attempt at the tutorial problems without looking at the solutions."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "torch",
+    "triton",
+    "matplotlib",
+    "pandas",
+    "tabulate",
+    "ipython",
+]
