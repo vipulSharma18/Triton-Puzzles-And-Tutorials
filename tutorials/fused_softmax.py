@@ -86,7 +86,7 @@ def main():
             assert torch.allclose(output_torch_ops, output_torch), str(torch.max(torch.abs(output_torch_ops-output_torch)))
             assert torch.allclose(output_triton, output_torch), str(torch.max(torch.abs(output_triton-output_torch)))
 
-    print("Passed correctness. Running bechmark:")
+    print("Passed correctness.\nRunning bechmark:")
     benchmark.run(print_data=True, save_path="./")
 
 
